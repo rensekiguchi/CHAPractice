@@ -1,0 +1,28 @@
+# Terraformの作業ディレクトリ
+.terraform/
+.terraform.lock.hcl
+
+# Terraform状態ファイル
+terraform.tfstate
+terraform.tfstate.backup
+*.tfstate
+*.tfstate.*
+
+# Terraform計画ファイル
+*.tfplan
+
+# Terraformの変数ファイル（機密情報を含む場合）
+*.tfvars
+*.tfvars.json
+
+# クラッシュログ
+crash.log
+
+# ログファイル
+*.log
+
+# 出力ファイル
+*.out
+
+# その他
+.DS_Store

@@ -1,0 +1,66 @@
+# name: ワークフローの名前を設定。
+name: GitHub Actions Practice
+
+# on: GHAがどのタイミングで動作させるかを指定。
+# 今回はmainブランチへのpushとpull requestでトリガー
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+# env: 環境変数を設定。シェルやコマンド内で利用される。
+env:
+  AWS_ROLE_ARN: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ vars.AWS_ROLE_NAME }}
+  AWS_REGION: 'ap-northeast-1'
+  WORKING_DIRECTORY: ./terraform/dev/
+
+jobs:
+  terraform:
+    name: Terraform Plan and Apply
+    # 使用するOSを指定する
+    runs-on: ubuntu-latest
+    # OIDCを使用可能にさせる（おまじない）
+    # GITHUB_TOKENに付与される権限を操作する
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - run: sleep 10
+
+      # リポジトリをチェックアウト
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # AWS OIDCでの認証設定
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-duration-seconds: 900
+
+      # Terraformをセットアップ
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.4.5
+
+      # Terraform Initの実行
+      - name: Terraform Init
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: terraform init
+
+      # Terraform Planの実行
+      - name: Terraform Plan
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: terraform plan
+
+      # mainブランチにpushされたときだけ、Terraform Applyを実行
+      - name: Terraform Apply
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: terraform apply -auto-approve
